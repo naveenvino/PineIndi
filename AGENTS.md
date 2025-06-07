@@ -15,9 +15,11 @@ Create a Pine Script v6 indicator based on the following specifications provided
 - Use appropriate plot styles (e.g., lines, shapes, colors) as per manual recommendations.
 - Ensure compatibility with Pine Script v6's latest features and improvements.
 - Provide clear inline comments explaining each critical part of the script, referencing specific sections or functions in the manual when relevant.
+- always use  style=plot.style_circles for plotting
 
 ## Output
 The output must be a complete, ready-to-use Pine Script v6 code snippet for direct implementation in TradingView.
+Use PreviousWeek file from root path to save the script
 
 ## Example Format
 ```pine
