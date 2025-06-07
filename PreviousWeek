@@ -5,7 +5,7 @@ indicator("Prev Week High/Low + 1H Body Extremes (All Timeframes)", overlay=true
 prev_week_high = request.security(syminfo.tickerid, "W", high[1], lookahead=barmerge.lookahead_off)
 prev_week_low  = request.security(syminfo.tickerid, "W", low[1],  lookahead=barmerge.lookahead_off)
 
-//--- We need to restrict special logic to charts >= 1H (60) only for body extremes
+//--- We need to restrict special logic to charts > 1H (60) only for body extremes
 can_use_lower_tf = timeframe.in_seconds() > 3600
 
 float prev_week_1h_max_body_top = na
