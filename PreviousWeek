@@ -22,8 +22,8 @@ if can_use_lower_tf
     array<float> arr_body_bot = array.new_float()
     arrsize = array.size(oneh_open)
 
-    var float week_start = na
-    var float week_end = na
+    var int week_start = na
+    var int week_end = na
 
     if not na(time[1])
         week_start := timestamp("GMT+0", year(time[1]), month(time[1]), dayofmonth(time[1]) - dayofweek(time[1]) + 1, 0, 0)
