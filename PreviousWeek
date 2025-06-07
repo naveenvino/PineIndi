@@ -14,9 +14,10 @@ float prev_week_1h_min_body_bottom = na
 if can_use_lower_tf
     // --- Only do this logic if chart > 1H (e.g. 2H, 4H, Daily, Weekly, etc.)
     // Get 1H opens/closes for previous week
-    oneh_open  = request.security_lower_tf(syminfo.tickerid, "60", open)
-    oneh_close = request.security_lower_tf(syminfo.tickerid, "60", close)
-    oneh_time  = request.security_lower_tf(syminfo.tickerid, "60", time)
+    // Use request.security() so script works on any chart timeframe
+    oneh_open  = request.security(syminfo.tickerid, "60", open)
+    oneh_close = request.security(syminfo.tickerid, "60", close)
+    oneh_time  = request.security(syminfo.tickerid, "60", time)
 
     array<float> arr_body_top = array.new_float()
     array<float> arr_body_bot = array.new_float()
@@ -46,12 +47,12 @@ else
     prev_week_1h_min_body_bottom := na
 
 //--- Plot prev week high/low (all timeframes)
-plot(prev_week_high, "Prev Week High", color=color.red, linewidth=2)
-plot(prev_week_low, "Prev Week Low", color=color.blue, linewidth=2)
+plot(prev_week_high, "Prev Week High", color=color.red, linewidth=2, style=plot.style_circles)
+plot(prev_week_low, "Prev Week Low", color=color.blue, linewidth=2, style=plot.style_circles)
 
 //--- Plot 1H body extremes (only on higher timeframe charts)
-plot(prev_week_1h_max_body_top, "Prev Week 1H Max Body Top", color=color.maroon, linewidth=1)
-plot(prev_week_1h_min_body_bottom, "Prev Week 1H Min Body Bottom", color=color.navy, linewidth=1)
+plot(prev_week_1h_max_body_top, "Prev Week 1H Max Body Top", color=color.maroon, linewidth=1, style=plot.style_circles)
+plot(prev_week_1h_min_body_bottom, "Prev Week 1H Min Body Bottom", color=color.navy, linewidth=1, style=plot.style_circles)
 
 //--- Optional: Draw shaded zones if you want (only on supported timeframes)
 show_boxes = input.bool(true, "Show Zones (only works above 1H)")
