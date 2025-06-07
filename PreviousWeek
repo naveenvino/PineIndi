@@ -1,41 +1,79 @@
 //@version=6
-indicator("Previous Week High/Low", overlay=true)
+indicator("Prev Week High/Low + 1H Body Extremes (All Timeframes)", overlay=true)
 
-// Input parameters.
-// `input.bool()` is described in the manual around line 561.
-showPrevHigh = input.bool(true, title="Show Previous Week High")
-showPrevLow  = input.bool(true, title="Show Previous Week Low")
-// `input.color()` documented around line 566 lets users choose colors.
-highColor    = input.color(color.green, title="High Line Color")
-lowColor     = input.color(color.red, title="Low Line Color")
-// Users can also set the line width with `input.int()` (manual line ~544).
-lineWidth    = input.int(2, minval=1, title="Line Width")
+//--- Utility to get previous week high/low on any chart timeframe
+prev_week_high = request.security(syminfo.tickerid, "W", high[1], lookahead=barmerge.lookahead_off)
+prev_week_low  = request.security(syminfo.tickerid, "W", low[1],  lookahead=barmerge.lookahead_off)
 
-// Retrieve last week’s levels.
-// `request.security()` is documented in the manual (lines 968‑980)
-// and allows fetching data from a higher timeframe.
-prevWeekHigh = request.security(syminfo.tickerid, "W", high[1])
-prevWeekLow  = request.security(syminfo.tickerid, "W", low[1])
+//--- We need to restrict special logic to charts >= 1H (60) only for body extremes
+can_use_lower_tf = timeframe.in_seconds() > 3600
 
-// Plot horizontal lines with the `plot()` function (manual lines 610‑623).
-plot(showPrevHigh ? prevWeekHigh : na,
-     title="Prev Week High",
-     color=highColor,
-     linewidth=lineWidth,
-     style=plot.style_line,    // plot style constants on lines 266‑268
-     trackprice=true)          // extend value to the right scale
+float prev_week_1h_max_body_top = na
+float prev_week_1h_min_body_bottom = na
 
-plot(showPrevLow ? prevWeekLow : na,
-     title="Prev Week Low",
-     color=lowColor,
-     linewidth=lineWidth,
-     style=plot.style_line,
-     trackprice=true)
+if can_use_lower_tf
+    // --- Only do this logic if chart > 1H (e.g. 2H, 4H, Daily, Weekly, etc.)
+    // Get 1H opens/closes for previous week
+    oneh_open  = request.security_lower_tf(syminfo.tickerid, "60", open)
+    oneh_close = request.security_lower_tf(syminfo.tickerid, "60", close)
+    oneh_time  = request.security_lower_tf(syminfo.tickerid, "60", time)
 
-// Alerts using `alertcondition` (manual lines ~1025) and `ta.cross` (line ~360).
-alertcondition(ta.cross(close, prevWeekHigh),
-               title="Cross Prev Week High",
-               message="Close crossed previous week's high")
-alertcondition(ta.cross(close, prevWeekLow),
-               title="Cross Prev Week Low",
-               message="Close crossed previous week's low")
+    array<float> arr_body_top = array.new_float()
+    array<float> arr_body_bot = array.new_float()
+    arrsize = array.size(oneh_open)
+
+    var float week_start = na
+    var float week_end = na
+
+    if not na(time[1])
+        week_start := timestamp("GMT+0", year(time[1]), month(time[1]), dayofmonth(time[1]) - dayofweek(time[1]) + 1, 0, 0)
+        week_end := week_start + 7 * 86400 * 1000
+
+    for i = 0 to arrsize - 1
+        t = array.get(oneh_time, i)
+        if not na(t) and t >= week_start and t < week_end
+            o = array.get(oneh_open, i)
+            c = array.get(oneh_close, i)
+            if not na(o) and not na(c)
+                array.push(arr_body_top, math.max(o, c))
+                array.push(arr_body_bot, math.min(o, c))
+
+    prev_week_1h_max_body_top := array.size(arr_body_top) > 0 ? array.max(arr_body_top) : na
+    prev_week_1h_min_body_bottom := array.size(arr_body_bot) > 0 ? array.min(arr_body_bot) : na
+else
+    // Fallback for <= 1H: we can't process 1H bodies here. Show lines only for prev week high/low.
+    prev_week_1h_max_body_top := na
+    prev_week_1h_min_body_bottom := na
+
+//--- Plot prev week high/low (all timeframes)
+plot(prev_week_high, "Prev Week High", color=color.red, linewidth=2)
+plot(prev_week_low, "Prev Week Low", color=color.blue, linewidth=2)
+
+//--- Plot 1H body extremes (only on higher timeframe charts)
+plot(prev_week_1h_max_body_top, "Prev Week 1H Max Body Top", color=color.maroon, linewidth=1)
+plot(prev_week_1h_min_body_bottom, "Prev Week 1H Min Body Bottom", color=color.navy, linewidth=1)
+
+//--- Optional: Draw shaded zones if you want (only on supported timeframes)
+show_boxes = input.bool(true, "Show Zones (only works above 1H)")
+var box upperZoneBox = na
+var box lowerZoneBox = na
+
+if can_use_lower_tf and show_boxes
+    // Delete old boxes if they exist
+    if not na(upperZoneBox)
+        box.delete(upperZoneBox)
+        upperZoneBox := na
+    if not na(lowerZoneBox)
+        box.delete(lowerZoneBox)
+        lowerZoneBox := na
+    
+    // Draw new boxes only if data available
+    if not na(prev_week_high) and not na(prev_week_1h_max_body_top)
+        box_top = math.max(prev_week_high, prev_week_1h_max_body_top)
+        box_bottom = math.min(prev_week_high, prev_week_1h_max_body_top)
+        upperZoneBox := box.new(bar_index, box_top, bar_index+1, box_bottom, bgcolor=color.new(color.red,85), border_color=na, extend=extend.right)
+    if not na(prev_week_low) and not na(prev_week_1h_min_body_bottom)
+        box_top = math.max(prev_week_low, prev_week_1h_min_body_bottom)
+        box_bottom = math.min(prev_week_low, prev_week_1h_min_body_bottom)
+        lowerZoneBox := box.new(bar_index, box_top, bar_index+1, box_bottom, bgcolor=color.new(color.blue,85), border_color=na, extend=extend.right)
+
