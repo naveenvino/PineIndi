@@ -1,0 +1,28 @@
+//@version=6
+indicator("Previous Week High/Low", overlay=true)
+
+// Input toggles so users can choose which line(s) to display.
+// `input.bool()` is described in the manual around line 561.
+showPrevHigh = input.bool(true, title="Show Previous Week High")
+showPrevLow  = input.bool(true, title="Show Previous Week Low")
+
+// Retrieve last week’s levels.
+// `request.security()` is documented in the manual (lines 968‑980)
+// and allows fetching data from a higher timeframe.
+prevWeekHigh = request.security(syminfo.tickerid, "W", high[1])
+prevWeekLow  = request.security(syminfo.tickerid, "W", low[1])
+
+// Plot horizontal lines with the `plot()` function (manual lines 610‑623).
+plot(showPrevHigh ? prevWeekHigh : na,
+     title="Prev Week High",
+     color=color.green,        // color constants listed around lines 260‑265
+     linewidth=2,
+     style=plot.style_line,    // plot style constants on lines 266‑268
+     trackprice=true)          // extend value to the right scale
+
+plot(showPrevLow ? prevWeekLow : na,
+     title="Prev Week Low",
+     color=color.red,
+     linewidth=2,
+     style=plot.style_line,
+     trackprice=true)
